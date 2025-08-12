@@ -1,13 +1,13 @@
 ---
 # Secrets for MySQL
 apiVersion: v1
-kind: Secret
+kind: Secret  # what resource you are going to create
 metadata:
-  name: mysql-secret
-type: Opaque
-data:
+  name: mysql-secret  # information abt the resource
+type: Opaque       
+data:                 # store the data in environmental variables.
   MYSQL_ROOT_PASSWORD: VGVzdEAxMjM=
-  MYSQL_DATABASE: YmFua2FwcGRi
+  MYSQL_DATABASE: YmFua2FwcGRi    # bas64 encrypted { echo -n "test123"| base64 }
 ---
 # ConfigMap for MySQL
 apiVersion: v1
@@ -22,68 +22,68 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: ebs-sc
-provisioner: ebs.csi.aws.com
+provisioner: ebs.csi.aws.com   #  Responsible for dynamically creating thee resource.
 parameters:
   type: gp3
   fsType: ext4
-reclaimPolicy: Retain
-volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain          # Retain / Delete { volume will be present even after pvc is deleted.}
+volumeBindingMode: WaitForFirstConsumer   # {volume created by storage class is going to be created on the same availability zone as the pod. }
 ---
 # Persistent Volume Claim
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc
-spec:
+spec:                       # specification
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteOnce         # volume should be accessed by one pod at a time.
   storageClassName: ebs-sc
   resources:
     requests:
       storage: 5Gi
 ---
 # MySQL Deployment
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: apps/v1  
+kind: Deployment  
 metadata:
-  name: mysql
-spec:
-  selector:
-    matchLabels:
-      app: mysql
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
+  name: mysql   # metadata name
+spec:           # specification/ configuration for the deployment which is created.
+  selector:     # define information like which are the pods that are going to be manage  by this deployment.
+    matchLabels:  
+      app: mysql  # pods that are labeled with app:mysql should be managed by this deployment as per line no.49 & lineno.63
+  strategy:       # strategy to define how new pods will be created.
+    type: Recreate  # Ensuring old pod are terminated before the new pods are created.
+  template:         # template for the pod to be created { Information of docker image, docker container, username & password}
+    metadata:       
+      labels:       # under template we are defining the label for the pod.
         app: mysql
-    spec:
+    spec:           # specification/configuration for the pod { details like container to use}
       containers:
-      - image: mysql:8
+      - image: mysql:8   # name of the image to use for creating the container
         name: mysql
-        resources:
+        resources:      # 2 resources should be defined like requests ( min gauranteed ram & cpu )and limits ( max ram & cpu that can be utilized.)
           requests:
             memory: "512Mi"
             cpu: "500m"
           limits:
             memory: "1Gi"
             cpu: "1"
-        env:
+        env:             # environment variables to use for username and password.
         - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
+          valueFrom:     # Refernce from the secret no 4.
             secretKeyRef:
               name: mysql-secret
               key: MYSQL_ROOT_PASSWORD
         - name: MYSQL_DATABASE
           valueFrom:
-            configMapKeyRef:
+            configMapKeyRef:  # Reference from the configmap
               name: mysql-config
               key: MYSQL_DATABASE
-        ports:
+        ports:      
         - containerPort: 3306
           name: mysql
         volumeMounts:
-        - mountPath: /var/lib/mysql
+        - mountPath: /var/lib/mysql  # path inside the container
           name: mysql-data
       volumes:
       - name: mysql-data
@@ -94,13 +94,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql-service
+  name: mysql-service  # name of the service
 spec:
   ports:
-  - port: 3306
-    targetPort: 3306
+  - port: 3306        # port exposed by the service
+    targetPort: 3306  # port opened by the container
   selector:
-    app: mysql
+    app: mysql       # information about the pod which is defined in the deployment over the line no 59.
 ---
 # BankApp Deployment
 apiVersion: apps/v1
@@ -108,11 +108,11 @@ kind: Deployment
 metadata:
   name: bankapp
 spec:
-  replicas: 1
+  replicas: 1  # no of replicas required { no of pods replicas to run this deployment}
   selector:
     matchLabels:
       app: bankapp
-  template:
+  template:     # structure of pod tem
     metadata:
       labels:
         app: bankapp
